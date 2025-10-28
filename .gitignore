@@ -60,6 +60,7 @@ _sandbox_/
 qiskit_metal/qlibrary/user_components/*
 !qiskit_metal/qlibrary/user_components/__init__.py
 !qiskit_metal/qlibrary/user_components/my_qcomponent.py
+!qiskit_metal/qlibrary/user_components/JJ_Array.py
 
 # Sphinx documentation
 docs/build
