@@ -31,6 +31,15 @@ import shapely
 import pyEPR as epr
 from pyEPR.ansys import parse_units, HfssApp, release
 
+# Compatibility patch for pyEPR with modern NumPy versions
+# pyEPR uses deprecated np.float which was removed in NumPy 1.20+
+if not hasattr(np, 'float'):
+    np.float = np.float64
+if not hasattr(np, 'int'):
+    np.int = np.int_
+if not hasattr(np, 'complex'):
+    np.complex = np.complex128
+
 from qiskit_metal.draw.utility import to_vec3D
 from qiskit_metal.draw.basic import is_rectangle
 from qiskit_metal.renderers.renderer_base import QRendererAnalysis
@@ -1756,7 +1765,33 @@ class QAnsysRenderer(QRendererAnalysis):
         """
         if junctions is not None or dissipatives is not None:
             self.epr_start(junctions, dissipatives)
-        self.epr_distributed_analysis.do_EPR_analysis()
+        
+        # Monkey-patch pyEPR's hfss_report_f_convergence to handle COM errors gracefully
+        original_hfss_report = self.epr_distributed_analysis.hfss_report_f_convergence
+        
+        def safe_hfss_report_f_convergence(variation, save_csv=True):
+            """Wrapper that catches COM errors from report generation"""
+            try:
+                return original_hfss_report(variation, save_csv)
+            except Exception as e:
+                error_msg = str(e)
+                if 'PropServer' in error_msg or 'ChangeProperty' in error_msg or 'com_error' in str(type(e)):
+                    self.logger.warning(
+                        "ANSYS report generation failed (PropServer error). "
+                        "This does not affect EPR analysis results. Skipping convergence plot."
+                    )
+                    return None  # Return None instead of failing
+                else:
+                    raise
+        
+        # Temporarily replace the method
+        self.epr_distributed_analysis.hfss_report_f_convergence = safe_hfss_report_f_convergence
+        
+        try:
+            self.epr_distributed_analysis.do_EPR_analysis()
+        finally:
+            # Restore original method
+            self.epr_distributed_analysis.hfss_report_f_convergence = original_hfss_report
 
     def epr_spectrum_analysis(self, cos_trunc: int = 8, fock_trunc: int = 7):
         """Core epr analysis method.

@@ -1041,24 +1041,43 @@ class QHFSSRenderer(QAnsysRenderer):
                 report.DeleteReports([report_name])
 
             solutions = setup.get_solutions()
-            solutions.create_report(report_name,
-                                    "Pass",
-                                    ycomp,
-                                    params,
-                                    pass_name='AdaptivePass')
-
-            # Properties of lines
-            curves = [
-                f"{report_name}:re(Mode({i})):Curve1"
-                for i in range(1, 1 + n_modes)
-            ]
-            set_property(report, 'Attributes', curves, 'Line Width', 3)
-            set_property(report, 'Scaling', f"{report_name}:AxisY1",
-                         'Auto Units', False)
-            set_property(report, 'Scaling', f"{report_name}:AxisY1", 'Units',
-                         'g')
-            set_property(report, 'Legend', f"{report_name}:Legend",
-                         'Show Solution Name', False)
+            try:
+                solutions.create_report(report_name,
+                                        "Pass",
+                                        ycomp,
+                                        params,
+                                        pass_name='AdaptivePass')
+                
+                # Verify report was created successfully
+                if report_name not in report.GetAllReportNames():
+                    self.logger.warning(
+                        f"Report '{report_name}' was not created successfully. "
+                        "Skipping property configuration."
+                    )
+                else:
+                    # Properties of lines
+                    # Wrap property setting in try-except to handle cases where curves may not exist
+                    try:
+                        curves = [
+                            f"{report_name}:re(Mode({i})):Curve1"
+                            for i in range(1, 1 + n_modes)
+                        ]
+                        set_property(report, 'Attributes', curves, 'Line Width', 3)
+                        set_property(report, 'Scaling', f"{report_name}:AxisY1",
+                                     'Auto Units', False)
+                        set_property(report, 'Scaling', f"{report_name}:AxisY1", 'Units',
+                                     'g')
+                        set_property(report, 'Legend', f"{report_name}:Legend",
+                                     'Show Solution Name', False)
+                    except Exception as e:
+                        self.logger.warning(
+                            f"Could not set report properties. The report '{report_name}' was created "
+                            f"but styling failed. This may happen if curves don't exist yet. Error: {e}"
+                        )
+            except Exception as e:
+                self.logger.error(
+                    f"Failed to create report '{report_name}'. Error: {e}"
+                )
 
             if save_csv:  # Save
                 try:

@@ -163,6 +163,12 @@ class EPRanalysis(QAnalysis):
     def run_epr(self, no_junctions=False):
         """Executes the epr analysis from the extracted eigenmode,
         and based on the setup values.
+        
+        Note: You may see ANSYS HFSS errors related to report creation 
+        (e.g., "Invalid PropServer 'Freq. vs. pass:...'"). These errors 
+        are related to convergence plot generation and do not affect the 
+        EPR analysis results themselves. The EPR analysis will complete 
+        successfully even if these warnings appear.
         """
         # wipe data from the previous run (if any)
         self.clear_data()
