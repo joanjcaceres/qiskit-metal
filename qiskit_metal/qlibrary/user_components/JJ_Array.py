@@ -123,11 +123,10 @@ class JJ_Array(QComponent):
             
             all_junctions.append(junction)
         
-        # Add each junction as a SEPARATE geometry (no union!)
-        # This maintains the individuality of each junction for simulation
-        for i, junction in enumerate(all_junctions):
-            geom = {f'junction_{i}': junction}
-            self.add_qgeometry('poly', geom, layer=p.layer, subtract=False)
+        # Add all junctions as a single geometry
+        # Create a dictionary with all junctions
+        geom = {f'junction_{i}': junction for i, junction in enumerate(all_junctions)}
+        self.add_qgeometry('poly', geom, layer=p.layer, subtract=False)
             
     def get_total_capacitance(self):
         """
