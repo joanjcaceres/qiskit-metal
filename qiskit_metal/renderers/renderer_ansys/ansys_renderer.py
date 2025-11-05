@@ -57,6 +57,25 @@ if not config.is_building_docs():
     )
 
 
+HFSS_VALID_QUANTITY_NAMES = [
+    "Mesh",
+    "Mag_E",
+    "Mag_H",
+    "Mag_Jvol",
+    "Mag_Jsurf",
+    "ComplexMag_E",
+    "ComplexMag_H",
+    "ComplexMag_Jvol",
+    "ComplexMag_Jsurf",
+    "Vector_E",
+    "Vector_H",
+    "Vector_Jvol",
+    "Vector_Jsurf",
+    "Vector_RealPoynting",
+    "Local_SAR",
+    "Average_SAR",
+]
+
 def good_fillet_idxs(coords: list,
                      fradius: float,
                      precision: int = 9,
@@ -520,6 +539,11 @@ class QAnsysRenderer(QRendererAnalysis):
         )
         return self.plot_fields(*args, **kwargs)
 
+    @staticmethod
+    def valid_quantity_names() -> List[str]:
+        """Return the ordered list of QuantityName values that HFSS accepts."""
+        return list(HFSS_VALID_QUANTITY_NAMES)
+
     def plot_fields(
         self,
         object_name: str,
@@ -547,12 +571,11 @@ class QAnsysRenderer(QRendererAnalysis):
                 Defaults to None.
             UserSpecifyFolder (int, optional): 0 if default folder for plot is used, 1 otherwise.
                 Defaults to None.
-            QuantityName (str, optional): Type of plot to create. Possible values are
-                Mesh plots - "Mesh";
-                Field plots - "Mag_E", "Mag_H", "Mag_Jvol", "Mag_Jsurf","ComplexMag_E",
-                "ComplexMag_H", "ComplexMag_Jvol", "ComplexMag_Jsurf", "Vector_E", "Vector_H",
-                "Vector_Jvol", "Vector_Jsurf", "Vector_RealPoynting","Local_SAR", "Average_SAR".
-                Defaults to None.
+            QuantityName (str, optional): Type of plot to create. Valid values are
+                ``Mesh``, ``Mag_E``, ``Mag_H``, ``Mag_Jvol``, ``Mag_Jsurf``, ``ComplexMag_E``,
+                ``ComplexMag_H``, ``ComplexMag_Jvol``, ``ComplexMag_Jsurf``, ``Vector_E``, ``Vector_H``,
+                ``Vector_Jvol``, ``Vector_Jsurf``, ``Vector_RealPoynting``, ``Local_SAR``,
+                ``Average_SAR``. Defaults to None.
             PlotFolder (str, optional): Name of the folder to which the plot should be added.
                 Possible values are: "E Field",  "H Field", "Jvol", "Jsurf", "SARField", and
                 "MeshPlots". Defaults to None.
@@ -640,6 +663,12 @@ class QAnsysRenderer(QRendererAnalysis):
             PlotGeomInfo_2 = self.parse_value(paf["PlotGeomInfo_2"])
         if not PlotGeomInfo_3:
             PlotGeomInfo_3 = int(self.parse_value(paf["PlotGeomInfo_3"]))
+
+        if QuantityName and QuantityName not in HFSS_VALID_QUANTITY_NAMES:
+            raise ValueError(
+                f"Unsupported QuantityName '{QuantityName}'. "
+                f"Valid values: {', '.join(HFSS_VALID_QUANTITY_NAMES)}"
+            )
 
         # used to pass to CreateFieldPlot
         # Copied from  pdf at http://www.ece.uprm.edu/~rafaelr/inel6068/HFSS/scripting.pdf

@@ -247,6 +247,7 @@ class EigenmodeSim(QSimulation):
             object_name,
             eigenmode: int = 1,
             *args,
+            QuantityName: str = None,  # noqa: N803 (HFSS capitalisation)
             **kwargs):
         """Plots electro(magnetic) fields in the renderer.
         Accepts as args everything parameter accepted by the homonymous renderer method.
@@ -254,10 +255,35 @@ class EigenmodeSim(QSimulation):
         Args:
             object_name (str): Used to plot on faces of.
             eigenmode (int, optional): ID of the mode you intend to plot. Defaults to 1.
+            QuantityName (str, optional): HFSS field quantity selector. Valid values:
+                ``Mesh``, ``Mag_E``, ``Mag_H``, ``Mag_Jvol``, ``Mag_Jsurf``, ``ComplexMag_E``,
+                ``ComplexMag_H``, ``ComplexMag_Jvol``, ``ComplexMag_Jsurf``, ``Vector_E``,
+                ``Vector_H``, ``Vector_Jvol``, ``Vector_Jsurf``, ``Vector_RealPoynting``,
+                ``Local_SAR``, ``Average_SAR``. Defaults to ``None``.
 
         Returns:
             None
         """
+        if QuantityName is not None:
+            kwargs.setdefault("QuantityName", QuantityName)
+
+        resolved_quantity = kwargs.get("QuantityName")
+
+        valid_names = []
+        renderer = getattr(self, "renderer", None)
+        if renderer is not None:
+            renderer_cls = type(renderer)
+            getter = getattr(renderer_cls, "valid_quantity_names", None)
+            if callable(getter):
+                valid_names = getter()
+            elif isinstance(getter, (list, tuple)):
+                valid_names = list(getter)
+
+        if resolved_quantity and valid_names and resolved_quantity not in valid_names:
+            raise ValueError(
+                f"Unsupported QuantityName '{resolved_quantity}'. "
+                f"Valid values: {', '.join(valid_names)}"
+            )
         self.renderer.set_mode(eigenmode, self.sim_setup_name)
         return self.renderer.plot_fields(*args,
                                          **kwargs,
